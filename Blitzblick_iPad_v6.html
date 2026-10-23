@@ -1,0 +1,707 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Blitzblick</title>
+<style>
+  :root{
+    --bg:#f7f6f2;
+    --card:#ffffff;
+    --ink:#263238;
+    --muted:#7a858b;
+    --line:#8b8f8d;
+    --dot:#df5054;
+    --dot-dark:#c83f44;
+    --green:#2f9e62;
+    --green-soft:#e9f7ef;
+    --amber:#e5a526;
+    --amber-soft:#fff5dc;
+    --red:#c94343;
+    --blue:#4b7bec;
+    --shadow:0 8px 26px rgba(30,40,45,.10);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif}
+  body{min-height:100svh;overflow-x:hidden}
+  button,input{font:inherit}
+  button{touch-action:manipulation}
+  .app{min-height:100svh;display:flex;flex-direction:column}
+  .topbar{height:58px;display:flex;align-items:center;gap:14px;padding:8px max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right));}
+  .brand{width:44px;height:44px;border:none;background:transparent;border-radius:14px;display:grid;place-items:center;cursor:pointer}
+  .brand::before{content:"";width:14px;height:14px;border-radius:50%;background:var(--dot);display:block}
+  .progress-shell{flex:1;height:12px;background:#e1e3e0;border-radius:999px;overflow:hidden}
+  .progress-fill{height:100%;width:0%;background:var(--green);border-radius:999px;transition:width .35s ease}
+  main{flex:1;display:grid;place-items:center;padding:10px max(16px,env(safe-area-inset-left)) max(18px,env(safe-area-inset-bottom));}
+  .screen{width:min(980px,100%);min-height:min(700px,calc(100svh - 90px));display:none;align-items:center;justify-content:center}
+  .screen.active{display:flex}
+  .panel{width:min(760px,100%);background:var(--card);border-radius:28px;box-shadow:var(--shadow);padding:clamp(20px,4vw,38px)}
+  .start-only{display:grid;place-items:center;width:100%;min-height:60vh;padding:18px}
+  .start-panel{width:min(820px,100%);display:grid;gap:24px;justify-items:center}
+  .range-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;width:min(780px,100%)}
+  .range-btn{border:4px solid #d8dbd8;background:#fff;border-radius:28px;min-height:150px;padding:16px 10px;display:grid;align-content:center;justify-items:center;gap:10px;font-weight:900;color:var(--ink);cursor:pointer;box-shadow:var(--shadow)}
+  .range-btn:active{transform:scale(.98)}
+  .range-number{font-size:clamp(50px,8vw,78px);line-height:1}
+  .range-stars{display:flex;gap:4px;justify-content:center}
+  .range-stars .star{font-size:clamp(18px,3vw,28px);line-height:1;color:#d4d8d5}
+  .range-stars .star.on{color:#f2c94c}
+
+  .mode-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px;width:min(560px,100%)}
+  .mode-btn{border:4px solid #d8dbd8;background:#fff;border-radius:30px;min-height:220px;display:grid;place-items:center;cursor:pointer;box-shadow:var(--shadow)}
+  .mode-btn:active{transform:scale(.98)}
+  .mode-emoji{font-size:clamp(84px,14vw,126px);line-height:1}
+  .back-btn{position:absolute;left:max(18px,env(safe-area-inset-left));top:max(16px,env(safe-area-inset-top));width:64px;height:64px;border:none;border-radius:50%;background:#fff;box-shadow:var(--shadow);font-size:42px;line-height:1;color:var(--ink);cursor:pointer}
+
+  .task-wrap{width:min(930px,100%);display:grid;gap:18px;justify-items:center}
+  .flash-stage{width:100%;min-height:340px;display:grid;place-items:center;padding:12px 0}
+  .flash-button{width:118px;height:118px;border:4px solid #d6d9d7;border-radius:50%;background:#fff;box-shadow:var(--shadow);cursor:pointer;display:grid;place-items:center}
+  .flash-button::before{content:"";width:0;height:0;border-top:23px solid transparent;border-bottom:23px solid transparent;border-left:36px solid var(--ink);margin-left:9px}
+  .flash-button:active{transform:scale(.97)}
+  .quantity-holder{width:100%;display:grid;place-items:center;animation:pop .16s ease-out}
+  @keyframes pop{from{transform:scale(.98);opacity:.5}to{transform:scale(1);opacity:1}}
+
+  .qcard{width:min(850px,96vw);background:#fff;border-radius:22px;display:grid;place-items:center;padding:24px 20px}
+  .small-pattern{width:min(430px,90vw);aspect-ratio:1.35;position:relative;background:#fff;border:5px solid #8c8f8d;border-radius:24px;box-shadow:0 5px 0 rgba(0,0,0,.06)}
+  .small-dot{position:absolute;width:22%;aspect-ratio:1;border-radius:50%;background:var(--dot);transform:translate(-50%,-50%);box-shadow:inset 0 -2px 0 rgba(0,0,0,.08)}
+  .frame{position:relative;width:min(820px,94vw);background:#fff;border:5px solid var(--line);border-radius:22px;overflow:hidden;display:grid;box-shadow:0 4px 0 rgba(0,0,0,.06);padding:12px 14px}
+  .frame.ten{grid-template-columns:repeat(5,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));max-width:600px;aspect-ratio:2.55/1}
+  .frame.twenty{width:min(900px,92vw);grid-template-columns:repeat(10,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));aspect-ratio:4.15/1}
+  .frame::before{content:"";position:absolute;left:0;right:0;top:50%;height:5px;background:var(--line);transform:translateY(-50%);z-index:1}
+  .frame.twenty::after{content:"";position:absolute;top:0;bottom:0;left:50%;width:5px;background:var(--line);transform:translateX(-50%);z-index:1}
+  .dot-slot{min-width:0;min-height:0;display:grid;place-items:center;padding:clamp(4px,.8vw,9px);position:relative;z-index:2}
+  .dot-cell{display:block;width:min(72%,64px);max-height:72%;aspect-ratio:1/1;border-radius:50%;border:2.5px solid #bfc3c1;background:#fff;box-shadow:inset 0 0 0 1px rgba(0,0,0,.03)}
+  .dot-cell.filled{background:var(--dot);border-color:var(--dot);box-shadow:inset 0 -2px 0 rgba(0,0,0,.08)}
+
+  .answer-area{width:min(900px,100%);display:grid;gap:14px;justify-items:center}
+  .choice-row{width:100%;display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .num-choice{min-height:112px;border:4px solid #d8dbd8;background:#fff;border-radius:26px;font-size:clamp(46px,8vw,72px);font-weight:800;cursor:pointer;color:var(--ink)}
+  .num-choice:active,.pic-choice:active{transform:scale(.985)}
+  .pic-choice{border:4px solid #d8dbd8;background:#fff;border-radius:24px;min-height:150px;padding:10px;cursor:pointer;display:grid;place-items:center;overflow:hidden}
+  .pic-choice .frame{width:100%;border-width:3px;border-radius:12px;box-shadow:none}
+  .pic-choice .dot-cell{border-width:1.2px}
+  .pic-choice .small-pattern{width:100%;max-width:180px;border-width:3px;border-radius:14px;box-shadow:none}
+  .hint-box{min-height:112px;display:grid;place-items:center;width:100%}
+  .wrong-x{font-size:clamp(92px,16vw,140px);line-height:1;font-weight:900;color:var(--red);animation:pop .18s ease-out}
+  .feedback-only{min-height:520px;display:grid;place-items:center;align-content:center;gap:26px;text-align:center}
+  .feedback-icon{font-size:clamp(94px,17vw,150px);line-height:1;font-weight:900;color:var(--green)}
+  .continue-btn{width:min(330px,80vw);min-height:88px;border:none;border-radius:25px;background:var(--green);color:white;font-size:60px;font-weight:900;cursor:pointer;box-shadow:0 7px 0 #247a4b}
+  .continue-btn:active{transform:translateY(4px);box-shadow:0 3px 0 #247a4b}
+  .solution-card{display:grid;gap:16px;justify-items:center}
+  .solution-num{font-size:86px;font-weight:900;color:var(--ink)}
+  .solution-card .frame{max-width:600px}
+
+  .finish{display:grid;gap:42px;justify-items:center;text-align:center;width:min(760px,100%)}
+  .medal{width:min(560px,92vw);background:#fff;border-radius:30px;padding:32px;box-shadow:var(--shadow)}
+  .mastery-stars{display:flex;justify-content:center;gap:14px}
+  .mastery-star{font-size:clamp(50px,8vw,72px);line-height:1;color:#d7dbd8}
+  .mastery-star.on{color:#f2c94c;text-shadow:0 2px 0 rgba(0,0,0,.08)}
+  .repeat-btn{width:110px;height:110px;border:none;border-radius:50%;background:#fff;box-shadow:var(--shadow);cursor:pointer;display:grid;place-items:center;font-size:58px;color:var(--ink)}
+  .repeat-btn:active{transform:scale(.97)}
+  .hand-off{display:flex;align-items:center;justify-content:center;gap:28px}
+  .tablet-icon{width:92px;height:126px;border:8px solid var(--ink);border-radius:16px;background:#fff;position:relative}
+  .tablet-icon::after{content:"";position:absolute;left:50%;bottom:5px;transform:translateX(-50%);width:10px;height:10px;border-radius:50%;background:var(--ink)}
+  .handoff-arrow{font-size:72px;line-height:1;font-weight:500;color:var(--ink)}
+  .teacher-tap{width:112px;height:126px;border:none;background:transparent;cursor:pointer;padding:0;position:relative}
+  .teacher-tap::before{content:"";position:absolute;top:4px;left:50%;transform:translateX(-50%);width:48px;height:48px;border-radius:50%;background:var(--ink)}
+  .teacher-tap::after{content:"";position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:94px;height:66px;border-radius:46px 46px 15px 15px;background:var(--ink)}
+
+  .modal{position:fixed;inset:0;background:rgba(25,33,37,.48);display:none;place-items:center;padding:20px;z-index:30}
+  .modal.show{display:grid}
+  .modal-card{width:min(430px,100%);background:#fff;border-radius:26px;padding:26px;box-shadow:0 18px 60px rgba(0,0,0,.25);display:grid;gap:18px;text-align:center}
+  .pin{font-size:40px;text-align:center;border:3px solid #d3d6d4;border-radius:18px;padding:12px;width:100%}
+  .modal-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .secondary,.primary{border:none;border-radius:18px;padding:14px;font-weight:800;font-size:20px;cursor:pointer}
+  .secondary{background:#edf0ee;color:var(--ink)}
+  .primary{background:var(--green);color:#fff}
+
+  .teacher-screen{align-items:flex-start!important;padding-top:8px}
+  .teacher-panel{width:min(980px,100%);background:#fff;border-radius:24px;box-shadow:var(--shadow);padding:22px;display:grid;gap:18px}
+  .teacher-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .teacher-head h1{margin:0;font-size:28px}
+  .teacher-head-actions{display:flex;gap:10px;flex-wrap:wrap}
+  .small-btn{border:none;border-radius:13px;padding:10px 14px;font-weight:750;cursor:pointer;background:#eef1ef;color:var(--ink)}
+  .tabbar{display:flex;gap:8px;flex-wrap:wrap}
+  .tab{border:2px solid #d5d9d6;background:#fff;border-radius:14px;padding:10px 14px;font-weight:800;cursor:pointer}
+  .tab.active{background:#eaf7ef;border-color:#78bd93}
+  .teacher-content{display:none}
+  .teacher-content.active{display:grid;gap:16px}
+  .summary-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+  .summary-card{background:#f5f6f4;border-radius:16px;padding:15px;display:grid;gap:6px}
+  .summary-card strong{font-size:25px}
+  .code-box{background:#f4f5f3;border:2px dashed #aeb5b0;border-radius:18px;padding:15px;display:grid;gap:7px}
+  .code{font:800 22px ui-monospace,SFMono-Regular,Menlo,monospace;word-break:break-all;letter-spacing:.04em}
+  .result-table{width:100%;border-collapse:collapse;font-size:14px}
+  .result-table th,.result-table td{border-bottom:1px solid #e3e5e2;padding:9px 7px;text-align:left;vertical-align:top}
+  .pill{display:inline-block;border-radius:999px;padding:5px 9px;font-weight:800;font-size:12px}
+  .pill.good{background:#e7f6ed;color:#237947}.pill.mid{background:#fff3d5;color:#8a6411}.pill.bad{background:#fde8e8;color:#9f3030}
+  .decoder{display:grid;gap:12px}
+  .decoder input{width:100%;border:2px solid #d7dad8;border-radius:14px;padding:12px 14px;font-size:17px}
+  .decoder-output{display:grid;gap:14px}
+  .note{color:var(--muted);font-size:13px}
+  .hidden{display:none!important}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+  @media(max-width:760px){
+    .screen{min-height:calc(100svh - 76px)}
+    .topbar{height:50px}.brand{width:38px;height:38px;font-size:26px}
+    .flash-stage{min-height:300px}
+    .choice-row{gap:8px}.num-choice{min-height:94px;border-radius:20px}.pic-choice{min-height:120px;padding:6px}
+    .summary-grid{grid-template-columns:1fr 1fr}
+    .result-table{font-size:12px}.result-table th,.result-table td{padding:7px 5px}
+  }
+  @media(max-width:520px){
+    .panel{padding:18px;border-radius:22px}.flash-stage{min-height:270px}
+    .pic-choice{min-height:104px}.choice-row{grid-template-columns:repeat(3,minmax(0,1fr))}
+    .range-row{grid-template-columns:1fr 1fr;max-width:520px}
+    .range-btn{min-height:110px}
+    .mode-btn{min-height:170px}
+    .frame{border-width:4px;padding:9px 10px}.frame::before{height:4px}.frame.twenty::after{width:4px}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar hidden">
+    <div id="progressShell" class="progress-shell hidden" aria-hidden="true"><div id="progressFill" class="progress-fill"></div></div>
+  </header>
+
+  <main>
+    <section id="startScreen" class="screen active">
+      <div class="start-only">
+        <div class="start-panel">
+          <div class="range-row" aria-label="Zahlenraum wählen">
+            <button class="range-btn" data-limit="7" aria-label="Bis 7">
+              <div class="range-number">7</div>
+              <div class="range-stars" aria-hidden="true"><span class="star on">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span></div>
+            </button>
+            <button class="range-btn" data-limit="10" aria-label="Bis 10">
+              <div class="range-number">10</div>
+              <div class="range-stars" aria-hidden="true"><span class="star on">★</span><span class="star on">★</span><span class="star">★</span><span class="star">★</span></div>
+            </button>
+            <button class="range-btn" data-limit="14" aria-label="Bis 14">
+              <div class="range-number">14</div>
+              <div class="range-stars" aria-hidden="true"><span class="star on">★</span><span class="star on">★</span><span class="star on">★</span><span class="star">★</span></div>
+            </button>
+            <button class="range-btn" data-limit="20" aria-label="Bis 20">
+              <div class="range-number">20</div>
+              <div class="range-stars" aria-hidden="true"><span class="star on">★</span><span class="star on">★</span><span class="star on">★</span><span class="star on">★</span></div>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="modeScreen" class="screen">
+      <button id="modeBack" class="back-btn" aria-label="Zurück">‹</button>
+      <div class="start-only">
+        <div class="start-panel">
+          <div class="mode-row" aria-label="Spielart wählen">
+            <button class="mode-btn" data-mode="feather" aria-label="Feder, Zahlen aufsteigend">
+              <div class="mode-emoji" aria-hidden="true">🪶</div>
+            </button>
+            <button class="mode-btn" data-mode="stone" aria-label="Stein, Zahlen gemischt">
+              <div class="mode-emoji" aria-hidden="true">🪨</div>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="taskScreen" class="screen">
+      <div id="taskWrap" class="task-wrap"></div>
+    </section>
+
+    <section id="finishScreen" class="screen">
+      <div class="finish">
+        <div class="medal">
+          <div id="masteryStars" class="mastery-stars" aria-label="Rückmeldung"></div>
+        </div>
+        <div class="hand-off" aria-label="iPad zur Lehrkraft bringen">
+          <span class="tablet-icon" aria-hidden="true"></span>
+          <span class="handoff-arrow" aria-hidden="true">→</span>
+          <button id="teacherTap" class="teacher-tap" aria-label="Lehrkraft"></button>
+        </div>
+        <button id="repeatBtn" class="repeat-btn" aria-label="Neu anfangen">↺</button>
+      </div>
+    </section>
+
+    <section id="teacherScreen" class="screen teacher-screen">
+      <div class="teacher-panel">
+        <div class="teacher-head">
+          <h1>Lehrkraftbereich</h1>
+          <div class="teacher-head-actions">
+            <button id="backToChild" class="small-btn">Kinderansicht</button>
+            <button id="newRun" class="small-btn">Neue Übung</button>
+          </div>
+        </div>
+        <div class="tabbar">
+          <button class="tab active" data-tab="local">Aktuelle Auswertung</button>
+          <button class="tab" data-tab="decoder">Code auswerten</button>
+        </div>
+        <div id="teacherLocal" class="teacher-content active"></div>
+        <div id="teacherDecoder" class="teacher-content">
+          <div class="decoder">
+            <input id="decodeCode" type="text" spellcheck="false" autocapitalize="characters" placeholder="BB4-…">
+            <button id="decodeBtn" class="primary">Auswerten</button>
+            <div id="decoderOutput" class="decoder-output"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div id="pinModal" class="modal" role="dialog" aria-modal="true" aria-label="PIN">
+  <div class="modal-card">
+    <div style="font-size:34px;font-weight:900">LK</div>
+    <input id="pinInput" class="pin" type="password" inputmode="numeric" maxlength="2" aria-label="PIN">
+    <div class="modal-actions">
+      <button id="pinCancel" class="secondary">Zurück</button>
+      <button id="pinOk" class="primary">Öffnen</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  const VERSION = 4;
+  const STATE = { DIRECT:0, SECOND:1, UNSOLVED:2, UNATTEMPTED:3 };
+
+  const $ = s => document.querySelector(s);
+  const $$ = s => [...document.querySelectorAll(s)];
+  const screens = {
+    start: $('#startScreen'), mode: $('#modeScreen'), task: $('#taskScreen'), finish: $('#finishScreen'), teacher: $('#teacherScreen')
+  };
+  const taskWrap = $('#taskWrap');
+  const progressShell = $('#progressShell');
+  const progressFill = $('#progressFill');
+  let tasks = [];
+  let taskIndex = 0;
+  let attempts = 0;
+  let locked = false;
+  let lastScreenBeforeTeacher = 'start';
+  let teacherTapCount = 0;
+  let teacherTapTimer = null;
+  let brandTapCount = 0;
+  let brandTapTimer = null;
+  let numberLimit = 10;
+  let playMode = 'feather';
+
+  function showScreen(name){
+    Object.entries(screens).forEach(([k,el]) => el.classList.toggle('active', k===name));
+    $('.topbar').classList.toggle('hidden', name!=='task');
+    progressShell.classList.toggle('hidden', name!=='task');
+    if(name==='task') updateProgress();
+  }
+
+  function shuffle(arr){
+    const a=[...arr];
+    for(let i=a.length-1;i>0;i--){
+      const j=Math.floor(Math.random()*(i+1));
+      [a[i],a[j]]=[a[j],a[i]];
+    }
+    return a;
+  }
+
+  function sampleSorted(min,max,count){
+    const pool=[]; for(let n=min;n<=max;n++) pool.push(n);
+    return shuffle(pool).slice(0,count).sort((a,b)=>a-b);
+  }
+
+  function generateTargets(){
+    const targets=Array.from({length:numberLimit},(_,i)=>i+1);
+    return playMode==='stone' ? shuffle(targets) : targets;
+  }
+
+  function makeTasks(){
+    return generateTargets().map(target=>({
+      target,
+      result:STATE.UNATTEMPTED,
+      phase: phaseFor(target),
+      variant: Math.floor(Math.random()*3)
+    }));
+  }
+
+  function phaseFor(n){
+    if(n<=4) return 'Simultan 1–4';
+    if(n<=9) return 'Kraft der 5';
+    if(n===10) return 'Orientierung im Zwanzigerfeld';
+    return 'Kraft der 10';
+  }
+
+  function flashDuration(){
+    return 1500;
+  }
+
+  function renderSmallPattern(n, variant=0){
+    const sets = {
+      1:[[50,50]],
+      2: variant%2===0 ? [[32,50],[68,50]] : [[36,34],[64,66]],
+      3: variant%2===0 ? [[30,62],[50,34],[70,62]] : [[33,33],[50,63],[67,33]],
+      4: variant%2===0 ? [[32,32],[68,32],[32,68],[68,68]] : [[28,50],[44,30],[56,70],[72,50]]
+    };
+    const pts=sets[n] || [];
+    return `<div class="small-pattern">${pts.map(([x,y])=>`<span class="small-dot" style="left:${x}%;top:${y}%"></span>`).join('')}</div>`;
+  }
+
+  function renderFrame(n,{hint=false}={}){
+    const total=n<=9 ? 10 : 20;
+    const kind=total===10 ? 'ten' : 'twenty';
+    const cells=Array.from({length:total},(_,i)=>
+      `<span class="dot-slot"><span class="dot-cell ${i<n?'filled':''}"></span></span>`
+    ).join('');
+    return `<div class="frame ${kind}">${cells}</div>`;
+  }
+
+  function renderQuantity(n,variant=0,{hint=false}={}){
+    if(n<=4) return renderSmallPattern(n,variant);
+    return renderFrame(n,{hint});
+  }
+
+  function distractors(target){
+    const max = target<=4 ? 4 : target<=10 ? 10 : 20;
+    const min = target<=4 ? 1 : target<=10 ? 5 : 11;
+    const candidates=[];
+    for(let d=1;d<=4;d++){
+      if(target-d>=min) candidates.push(target-d);
+      if(target+d<=max) candidates.push(target+d);
+    }
+    const unique=[...new Set(candidates.filter(n=>n!==target))];
+    const chosen=shuffle(unique).slice(0,2);
+    while(chosen.length<2){
+      const n=Math.max(min,Math.min(max,target+(Math.random()<.5?-1:1)*(chosen.length+1)));
+      if(n!==target && !chosen.includes(n)) chosen.push(n);
+    }
+    return shuffle([target,...chosen]);
+  }
+
+  function updateProgress(){
+    const pct = tasks.length ? (taskIndex / tasks.length)*100 : 0;
+    progressFill.style.width = `${Math.min(100,pct)}%`;
+  }
+
+  function renderReady(){
+    locked=false; attempts=0;
+    taskWrap.innerHTML = `
+      <div class="flash-stage">
+        <button id="flashBtn" class="flash-button" aria-label="Punktebild ansehen"></button>
+      </div>`;
+    $('#flashBtn').addEventListener('click',showFlash,{once:true});
+    updateProgress();
+  }
+
+  function showFlash(){
+    if(locked) return;
+    locked=true;
+    const t=tasks[taskIndex];
+    taskWrap.innerHTML=`<div class="flash-stage"><div class="quantity-holder"><div class="qcard">${renderQuantity(t.target,t.variant)}</div></div></div>`;
+    window.setTimeout(()=>{
+      locked=false;
+      renderAnswer();
+    },flashDuration(t.target));
+  }
+
+  function renderAnswer(){
+    const t=tasks[taskIndex];
+    const choices=distractors(t.target);
+    const answerHTML = `<div class="choice-row">${choices.map(n=>`<button class="num-choice answer-choice" data-value="${n}" aria-label="${n}">${n}</button>`).join('')}</div>`;
+    taskWrap.innerHTML = `
+      <div class="answer-area" style="min-height:480px;align-content:center">
+        <div id="hintBox" class="hint-box"></div>
+        ${answerHTML}
+      </div>`;
+    $$('.answer-choice').forEach(btn=>btn.addEventListener('click',()=>checkAnswer(Number(btn.dataset.value))));
+  }
+
+  function checkAnswer(value){
+    if(locked) return;
+    const t=tasks[taskIndex];
+    if(value===t.target){
+      t.result = attempts===0 ? STATE.DIRECT : STATE.SECOND;
+      renderSuccess();
+      return;
+    }
+    attempts++;
+    if(attempts===1){
+      renderVisualHint();
+    } else {
+      t.result=STATE.UNSOLVED;
+      renderSolution();
+    }
+  }
+
+  function renderVisualHint(){
+    locked=true;
+    const hintBox=$('#hintBox');
+    $$('.answer-choice').forEach(b=>b.disabled=true);
+    hintBox.innerHTML = '<div class="wrong-x">×</div>';
+    window.setTimeout(()=>{
+      hintBox.innerHTML='';
+      $$('.answer-choice').forEach(b=>b.disabled=false);
+      locked=false;
+    },1000);
+  }
+
+  function renderSuccess(){
+    locked=false;
+    taskWrap.innerHTML=`<div class="feedback-only"><div class="feedback-icon">✓</div><button id="continueBtn" class="continue-btn" aria-label="Weiter">→</button></div>`;
+    $('#continueBtn').addEventListener('click',nextTask);
+  }
+
+  function renderSolution(){
+    const t=tasks[taskIndex];
+    taskWrap.innerHTML=`
+      <div class="feedback-only">
+        <div class="wrong-x">×</div>
+        <div class="solution-num">${t.target}</div>
+        <button id="continueBtn" class="continue-btn" aria-label="Weiter">→</button>
+      </div>`;
+    $('#continueBtn').addEventListener('click',nextTask);
+  }
+
+  function nextTask(){
+    taskIndex++;
+    if(taskIndex>=tasks.length){
+      progressFill.style.width='100%';
+      showFinish();
+    } else renderReady();
+  }
+
+  function scoreTasks(ts){
+    const valid=ts.filter(t=>t.result!==STATE.UNATTEMPTED);
+    if(!valid.length) return {score:0,level:0};
+    const points=valid.reduce((s,t)=>s+(t.result===STATE.DIRECT ? 1 : t.result===STATE.SECOND ? 0.7 : 0.2),0);
+    const score=points/valid.length;
+    const level=score>=.88?4:score>=.7?3:score>=.48?2:1;
+    return {score,level};
+  }
+
+  function showFinish(){
+    const {level}=scoreTasks(tasks);
+    $('#masteryStars').innerHTML=Array.from({length:4},(_,i)=>`<span class="mastery-star ${i<level?'on':''}">★</span>`).join('');
+    showScreen('finish');
+  }
+
+  function resultLabel(state){
+    if(state===STATE.DIRECT) return ['direkt richtig','good'];
+    if(state===STATE.SECOND) return ['im 2. Versuch','mid'];
+    if(state===STATE.UNSOLVED) return ['nicht selbst gelöst','bad'];
+    return ['nicht bearbeitet','bad'];
+  }
+
+  function stageSummary(ts, label, predicate){
+    const subset=ts.filter(predicate);
+    const s=scoreTasks(subset);
+    let word='keine Daten';
+    if(s.level===4) word='sehr sicher'; else if(s.level===3) word='sicher'; else if(s.level===2) word='teilweise sicher'; else if(s.level===1) word='noch üben';
+    return {label, subset, ...s, word};
+  }
+
+  function representationLabel(n){
+    if(n<=4) return 'freies Punktebild';
+    if(n<=9) return 'Zehnerfeld';
+    return 'Zwanzigerfeld';
+  }
+
+  function renderTeacherSummary(ts,code,meta={}){
+    const stages=[
+      stageSummary(ts,'Simultan 1–4',t=>t.target<=4),
+      stageSummary(ts,'Kraft der 5',t=>t.target>=5&&t.target<=9),
+      stageSummary(ts,'Orientierung 20er-Feld',t=>t.target===10),
+      stageSummary(ts,'Kraft der 10',t=>t.target>=11&&t.target<=20)
+    ].filter(s=>s.subset.length);
+    const total=scoreTasks(ts);
+    const counts={direct:0,second:0,unsolved:0};
+    ts.forEach(t=>{if(t.result===STATE.DIRECT)counts.direct++; else if(t.result===STATE.SECOND)counts.second++; else if(t.result===STATE.UNSOLVED)counts.unsolved++;});
+    const rows=ts.map((t,i)=>{
+      const [lab,cls]=resultLabel(t.result);
+      return `<tr><td>${i+1}</td><td>${t.target}</td><td>${representationLabel(t.target)}</td><td>${t.phase}</td><td><span class="pill ${cls}">${lab}</span></td></tr>`;
+    }).join('');
+    return `
+      <div class="summary-grid">
+        <div class="summary-card"><span>Zahlenraum</span><strong>bis ${meta.limit || Math.max(...ts.map(t=>t.target))}</strong></div>
+        <div class="summary-card"><span>Modus</span><strong>${(meta.mode||'')==='stone'?'Stein':'Feder'}</strong></div>
+      </div>
+      <div class="summary-grid">
+        <div class="summary-card"><span>Direkt richtig</span><strong>${counts.direct}/${ts.length}</strong></div>
+        <div class="summary-card"><span>2. Versuch</span><strong>${counts.second}/${ts.length}</strong></div>
+        <div class="summary-card"><span>Nicht selbst gelöst</span><strong>${counts.unsolved}/${ts.length}</strong></div>
+        <div class="summary-card"><span>Gesamt</span><strong>${['—','noch üben','teilweise sicher','sicher','sehr sicher'][total.level]}</strong><span>${Math.round(total.score*100)} %</span></div>
+      </div>
+      <div class="summary-grid">
+        ${stages.map(s=>`<div class="summary-card"><span>${s.label}</span><strong>${s.word}</strong><span>${Math.round(s.score*100)} % Lernweg-Score</span></div>`).join('')}
+      </div>
+      <div class="code-box"><strong>Ergebnis-Code</strong><div class="code">${escapeHTML(code||'—')}</div><div class="note">Version BB4 · lokal erzeugt · enthält keine personenbezogenen Daten</div></div>
+      <div style="overflow:auto"><table class="result-table"><thead><tr><th>#</th><th>Menge</th><th>Darstellung</th><th>Schwerpunkt</th><th>Ergebnis</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  }
+
+  function escapeHTML(s){return String(s).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
+
+  function crc8(bytes){
+    let crc=0;
+    for(const b of bytes){
+      crc ^= b;
+      for(let i=0;i<8;i++) crc = (crc & 0x80) ? ((crc<<1)^0x07)&0xFF : (crc<<1)&0xFF;
+    }
+    return crc;
+  }
+
+  const BASE32_ALPHABET='0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+  function bytesToBase32(bytes){
+    let bits=0, value=0, out='';
+    for(const b of bytes){
+      value=(value<<8)|b; bits+=8;
+      while(bits>=5){ bits-=5; out+=BASE32_ALPHABET[(value>>bits)&31]; }
+    }
+    if(bits>0) out+=BASE32_ALPHABET[(value<<(5-bits))&31];
+    return out;
+  }
+  function base32ToBytes(str){
+    const clean=str.toUpperCase().replace(/O/g,'0').replace(/[IL]/g,'1');
+    let bits=0, value=0; const out=[];
+    for(const ch of clean){
+      const idx=BASE32_ALPHABET.indexOf(ch);
+      if(idx<0) throw new Error('Ungültiges Zeichen im Code.');
+      value=(value<<5)|idx; bits+=5;
+      if(bits>=8){ bits-=8; out.push((value>>bits)&255); }
+    }
+    return Uint8Array.from(out);
+  }
+  function groupCode(s){return s.match(/.{1,4}/g).join('-');}
+
+  function encodeResults(ts){
+    const modeFlag=playMode==='stone'?1:0;
+    const bytes=[VERSION,numberLimit,modeFlag,ts.length];
+    ts.forEach(t=>{
+      const b=(t.target & 31) | ((t.result & 3)<<5);
+      bytes.push(b);
+    });
+    bytes.push(crc8(bytes));
+    return `BB4-${groupCode(bytesToBase32(Uint8Array.from(bytes)))}`;
+  }
+
+  function decodeResults(code){
+    const clean=String(code||'').trim().toUpperCase().replace(/\s+/g,'');
+    if(!clean.startsWith('BB4-')) throw new Error('Code gehört nicht zu BB4.');
+    const payload=clean.slice(4).replace(/-/g,'');
+    const bytes=[...base32ToBytes(payload)];
+    if(bytes.length<6) throw new Error('Code ist zu kurz.');
+    const supplied=bytes.pop();
+    if(crc8(bytes)!==supplied) throw new Error('Prüfsumme passt nicht. Bitte Code prüfen.');
+    const version=bytes.shift();
+    const limit=bytes.shift();
+    const modeFlag=bytes.shift();
+    const count=bytes.shift();
+    if(version!==VERSION) throw new Error('Andere Version.');
+    if(![7,10,14,20].includes(limit)) throw new Error('Ungültiger Zahlenraum.');
+    if(modeFlag>1) throw new Error('Ungültiger Modus.');
+    if(count!==bytes.length) throw new Error('Aufgabenanzahl passt nicht.');
+    const tasks=bytes.map(b=>{
+      const target=b&31;
+      const result=(b>>5)&3;
+      if(target<1||target>limit) throw new Error('Ungültige Menge im Code.');
+      return {target,result,phase:phaseFor(target),variant:0};
+    });
+    return {tasks,limit,mode:modeFlag===1?'stone':'feather'};
+  }
+
+  function openTeacher(){
+    lastScreenBeforeTeacher = screens.finish.classList.contains('active') ? 'finish' : screens.task.classList.contains('active') ? 'task' : screens.mode.classList.contains('active') ? 'mode' : 'start';
+    renderLocalTeacher();
+    showScreen('teacher');
+  }
+
+  function renderLocalTeacher(){
+    const hasRun=tasks.length>0 && tasks.some(t=>t.result!==STATE.UNATTEMPTED);
+    if(!hasRun){
+      $('#teacherLocal').innerHTML='<div class="note" style="font-size:16px">Noch keine abgeschlossene oder begonnene Übung auf diesem Gerät.</div>';
+      return;
+    }
+    const code=encodeResults(tasks);
+    $('#teacherLocal').innerHTML=renderTeacherSummary(tasks,code,{limit:numberLimit,mode:playMode});
+  }
+
+  function requestTeacherAccess(){
+    $('#pinInput').value='';
+    $('#pinModal').classList.add('show');
+    setTimeout(()=>$('#pinInput').focus(),50);
+  }
+  function closePin(){ $('#pinModal').classList.remove('show'); }
+  function verifyPin(){
+    if($('#pinInput').value==='28'){ closePin(); openTeacher(); }
+    else { $('#pinInput').value=''; $('#pinInput').focus(); }
+  }
+
+  function registerTripleTap(kind){
+    if(kind==='teacher'){
+      teacherTapCount++;
+      clearTimeout(teacherTapTimer);
+      teacherTapTimer=setTimeout(()=>teacherTapCount=0,850);
+      if(teacherTapCount>=3){teacherTapCount=0;requestTeacherAccess();}
+    } else {
+      brandTapCount++;
+      clearTimeout(brandTapTimer);
+      brandTapTimer=setTimeout(()=>brandTapCount=0,850);
+      if(brandTapCount>=3){brandTapCount=0;requestTeacherAccess();}
+    }
+  }
+
+  function resetRun(){
+    tasks=[]; taskIndex=0;attempts=0;locked=false;
+    progressFill.style.width='0%';
+    showScreen('start');
+  }
+
+  // Start UI: zuerst Zahlenraum, dann Feder oder Stein.
+  $$('.range-btn').forEach(btn=>btn.addEventListener('click',()=>{
+    numberLimit=Number(btn.dataset.limit);
+    showScreen('mode');
+  }));
+  $('#modeBack').addEventListener('click',()=>showScreen('start'));
+  $$('.mode-btn').forEach(btn=>btn.addEventListener('click',()=>{
+    playMode=btn.dataset.mode;
+    tasks=makeTasks(); taskIndex=0; attempts=0;
+    showScreen('task'); renderReady();
+  }));
+
+  // Teacher access
+  $('#teacherTap').addEventListener('click',()=>registerTripleTap('teacher'));
+  $('#repeatBtn').addEventListener('click',resetRun);
+  progressShell.addEventListener('click',()=>registerTripleTap('brand'));
+  $('#pinCancel').addEventListener('click',closePin);
+  $('#pinOk').addEventListener('click',verifyPin);
+  $('#pinInput').addEventListener('keydown',e=>{if(e.key==='Enter') verifyPin();});
+  $('#pinModal').addEventListener('click',e=>{if(e.target===$('#pinModal')) closePin();});
+  $('#backToChild').addEventListener('click',()=>showScreen(lastScreenBeforeTeacher));
+  $('#newRun').addEventListener('click',resetRun);
+
+  // Tabs + decoder
+  $$('.tab').forEach(tab=>tab.addEventListener('click',()=>{
+    $$('.tab').forEach(t=>t.classList.toggle('active',t===tab));
+    $('#teacherLocal').classList.toggle('active',tab.dataset.tab==='local');
+    $('#teacherDecoder').classList.toggle('active',tab.dataset.tab==='decoder');
+  }));
+  $('#decodeBtn').addEventListener('click',()=>{
+    const out=$('#decoderOutput');
+    try{
+      const decoded=decodeResults($('#decodeCode').value);
+      out.innerHTML=renderTeacherSummary(decoded.tasks,String($('#decodeCode').value).trim().toUpperCase(),{limit:decoded.limit,mode:decoded.mode});
+    }catch(err){
+      out.innerHTML=`<div class="code-box" style="border-color:#d57b7b;background:#fff1f1"><strong>Code nicht lesbar</strong><div>${escapeHTML(err.message)}</div></div>`;
+    }
+  });
+  $('#decodeCode').addEventListener('keydown',e=>{if(e.key==='Enter') $('#decodeBtn').click();});
+
+  // Keyboard convenience while task is running: Enter triggers the visually obvious single action.
+  document.addEventListener('keydown',e=>{
+    if(e.key!=='Enter') return;
+    if(screens.task.classList.contains('active')){
+      const flash=$('#flashBtn'); const cont=$('#continueBtn');
+      if(flash) flash.click(); else if(cont) cont.click();
+    }
+  });
+})();
+</script>
+</body>
+</html>
